@@ -1,5 +1,5 @@
 var restify = require('restify');
-var builder = require('botbuilder');
+var builder = require('../../core/');
 
 // Setup Restify Server
 var server = restify.createServer();
