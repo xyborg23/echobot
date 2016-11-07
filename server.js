@@ -1,8 +1,11 @@
 var restify = require('restify');
-var builder = require('../../core/');
+var builder = require('botbuilder');
 
 // Setup Restify Server
 var server = restify.createServer();
+
+// Handle Bot Framework messages
+server.post('/api/messages', bot.verifyBotFramework(), bot.listen());
 
 // Serve a static web page
 server.get(/.*/, restify.serveStatic({
@@ -23,7 +26,7 @@ var connector = new builder.ChatConnector({
 // Create bot
 var bot = new builder.UniversalBot(connector);
 // Handle Bot Framework messages
-server.post('/api/messages', connector.listen());
+// server.post('/api/messages', connector.listen());
 bot.dialog('/', function (session) {
     
     //respond with user's message
