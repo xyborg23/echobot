@@ -1,5 +1,7 @@
 var restify = require('restify');
-var builder = require('botbuilder');
+// var builder = require('botbuilder');
+
+var builder = require('../../core/');
 
 // Create chat bot
 var connector = new builder.ChatConnector({
