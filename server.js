@@ -9,7 +9,7 @@ var botConnectorOptions = {
 
 // Create bot
 var bot = new builder.BotConnectorBot(botConnectorOptions);
-bot.add('/', function (session) {
+bot.dialog('/', function (session) {
     
     //respond with user's message
     session.send("You said " + session.message.text);
