@@ -3,8 +3,8 @@ var builder = require('botbuilder');
 
 // Create chat bot
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD
+    appId: process.env.BOTFRAMEWORK_APPID,
+    appPassword: process.env.BOTFRAMEWORK_APPSECRET
 });
 
 var bot = new builder.UniversalBot(connector);
