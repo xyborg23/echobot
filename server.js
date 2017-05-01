@@ -1,25 +1,212 @@
 var restify = require('restify');
 var builder = require('botbuilder');
+var http = require('http');
+var xml2js = require('xml2js');
 
-// Create chat bot
-var connector = new builder.ChatConnector({
+// Get secrets from server environment
+var botConnectorOptions = {
     appId: process.env.BOTFRAMEWORK_APPID,
-    appPassword: process.env.BOTFRAMEWORK_APPSECRET
-});
+    appSecret: process.env.BOTFRAMEWORK_APPSECRET
+};
 
-var bot = new builder.UniversalBot(connector);
-bot.dialog('/', function (session) {
+// Bot questions and replies
+var questions = ['What is force?', 'What is insulin?', 'What is the slope of a line?']
+var answers = ['Force is mass times acceleration. It is the strength of physical action.', 'Insulin is a hormone that is important to maintain glucose levels in blood.', 'It is the rate of change of a line.']
+var current_question = ""
 
-    //respond with user's message
-    session.send("You said " + session.message.text);
-});
+var botReplies = [
+    { field: 'RN', prompt: "Great! Can you elaborate?" },
+    { field: 'RO', prompt: "That is correct, but tell me something more." },
+    { field: 'IN', prompt: "That does not seem relevant here. Try again." },
+    { field: 'IO', prompt: "Try thinking of your answer in another way." }
+];
+
+// Variables need to build JSON for LCC
+var remoteSessionKey = "";
+var JSONObject = {};
+JSONObject.ttop = 50;
+JSONObject.category = "news";
+JSONObject.include_etop = true;
+var answerKey = "Force is mass times acceleration. It is the strength of physical action.";
+JSONObject.target = encodeURI(answerKey);
+JSONObject.SS = "tasalsa500";
+JSONObject.wc = 0;
+JSONObject.notes = "";
+JSONObject.sessionKey = "";
+JSONObject.format = "xml";
+JSONObject.minWeight = 0;
+JSONObject.userGuid = "44064767-a6ef-4c70-9536-cf196ee6794a";
+JSONObject.type = "2";
+JSONObject.text = "";
+JSONObject.minStrength = 0;
+JSONObject.current = "";
+JSONObject.guid = "ea8308d1-f93c-457d-84c8-1fa4457c7148";
+JSONObject.include_ttop = true;
+JSONObject.minRankby = 0;
+JSONObject.etop = 10;
+JSONObject.domain = "nodomain";
+var jsonString = JSON.stringify(JSONObject);
+var pathpath = '/lcc?json=' + jsonString;
+
+var cc = "";
+var ct = 0;
+var r_old = "";
+var r_new = "";
+var irr_old = "";
+var irr_new =  "";
+
+// Create bot
+var bot = new builder.BotConnectorBot(botConnectorOptions);
+
+//=========================================================
+// Bots Dialogs
+//=========================================================
+bot.add('/', [
+    function (session) {
+        session.send("Hello, I am EMT Bot!");
+        session.beginDialog('/menu');
+    },
+    function (session, results) {
+        session.endConversation("Goodbye until next time...");
+    }
+]);
+
+bot.dialog('/menu', [
+    function (session) {
+        builder.Prompts.choice(session, "Choose a subject:", 'Physics|Biology|Math|Quit');
+    },
+    function (session, results) {
+        switch (results.response.index) {
+            case 0:
+            case 1:
+            case 2:
+                ct = 0;
+                session.beginDialog('/askQuestions', results.response);
+                break;
+            default:
+                session.endDialog();
+                break;
+        }
+    },
+    function (session) {
+        // Reload menu
+        session.replaceDialog('/menu');
+    }
+]).reloadAction('showMenu', null, { matches: /^(menu|back)/i });
+
+bot.dialog('/askQuestions', [
+    function (session, args) {
+        if(args.entity != null) {
+            current_question = questions[args.index];
+            answerKey = answers[args.index];
+        }
+        // Save previous state (create on first call)
+        session.dialogData.answer = args ? args.answer : "";
+
+        // Prompt user for next field
+        console.log(current_question);
+        builder.Prompts.text(session, current_question);
+    },
+    function (session, results) {
+        // Save users reply
+        session.dialogData.answer = results.response;
+
+        // Check for end of form
+        if (ct < 0.6) {
+            // session.send("You said " + session.dialogData.answer);
+            answerInput = encodeURI(session.dialogData.answer);
+            JSONObject.current = answerInput;
+            JSONObject.target = encodeURI(answerKey);
+            var jsonString = JSON.stringify(JSONObject);
+            var pathpath = '/lcc?json=' + jsonString;
+
+            var options = {
+              host: 'dsspp.skoonline.org',
+              path: pathpath
+            };
+
+            callback = function(response) {
+              var str = '';
+
+              //another chunk of data has been recieved, so append it to `str`
+              response.on('data', function (chunk) {
+                str += chunk;
+              });
+
+              //the whole response has been recieved, so we just print it out here
+              response.on('end', function () {
+                  var parseString = xml2js.parseString;
+                  parseString(str, function(err, results) {
+                      cc = results['lcc']['CC'];
+                      ct = results['lcc']['CT'];
+                      r_old = results['lcc']['RO'];
+                      r_new = results['lcc']['RN'];
+                      irr_old = results['lcc']['IO'];
+                      irr_new = results['lcc']['IN'];
+                      remoteSessionKey = results['lcc']['sessionKey'];
+                      JSONObject.sessionKey = encodeURI(remoteSessionKey);
+                      console.dir(results);
+                      console.log("CC ============= " + cc);
+                      console.log("CT ============= " + ct);
+                      console.log("RO ============= " + r_old);
+                      console.log("RN ============= " + r_new);
+                      console.log("IO ============= " + irr_old);
+                      console.log("IN ============= " + irr_new);
+                  });
+                  console.log(str);
+                  if(ct > 0.6) {
+                      session.send("Great! You got it! Want to try some other subject?")
+                      session.endDialogWithResult({ response: session.dialogData.answer });
+                  }
+                  else {
+                      if(cc >= 0 && cc < 0.1) {
+                          session.send("I know you can do this. Try to recall what we learned.");
+                      }
+                      else if(cc >= 0.1 && cc < 0.2) {
+                           session.send("Maybe. Try expanding on your answer.");
+                      }
+                      else if(cc >= 0.2 && cc < 0.3) {
+                           session.send("You're on the right track! Please try to elaborate.");
+                      }
+                      else if(cc >= 0.3 && cc < 0.5) {
+                           session.send("Great! Can you try to expand on your answer a little bit more?");
+                      }
+                      else if(cc >= 0.5 && cc < 0.6) {
+                           session.send("You're on the right track. Be sure to answer both parts of the question.");
+                      }
+                      else {
+                           session.send("Perfect, please click on the next button to see what your doctor has to say about your glucose levels in the past few years.");
+                      }
+                      session.replaceDialog('/askQuestions', session.dialogData);
+                  }
+              });
+            }
+
+            val = http.request(options, callback).end();
+            if(val != "") {
+                console.log("VAL IS:" + val);
+            }
+            // console.log("CT===================================== " + ct);
+            // if(ct > 0.6) {
+            //     session.endDialogWithResult({ response: session.dialogData.answer });
+            // }
+            // // Next field
+            // // session.replaceDialog('/q1');
+            // session.replaceDialog('/askQuestions', session.dialogData);
+        } else {
+            // Return completed form
+            console.log("CT: " + ct);
+            console.log("END DIALOG");
+            session.endDialogWithResult({ response: session.dialogData.answer });
+        }
+    }
+]);
 
 // Setup Restify Server
 var server = restify.createServer();
 
 // Handle Bot Framework messages
-// server.post('/api/messages', bot.verifyBotFramework(), bot.listen());
-server.post('/api/messages', connector.listen());
+server.post('/api/messages', bot.verifyBotFramework(), bot.listen());
 
 // Serve a static web page
 server.get(/.*/, restify.serveStatic({
