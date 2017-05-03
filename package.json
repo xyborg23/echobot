@@ -21,6 +21,8 @@
   "homepage": "https://github.com/fuselabs/echobot#readme",
   "dependencies": {
     "botbuilder": "^3.4.4",
-    "restify": "^4.2.0"
+    "restify": "^4.2.0",
+    "xml2js": "*",
+    "http": "*"
   }
 }

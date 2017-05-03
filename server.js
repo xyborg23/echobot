@@ -3,13 +3,31 @@ var builder = require('botbuilder');
 var http = require('http');
 var xml2js = require('xml2js');
 
-// Get secrets from server environment
-var botConnectorOptions = {
-    appId: process.env.BOTFRAMEWORK_APPID,
-    appSecret: process.env.BOTFRAMEWORK_APPSECRET
-};
+//=========================================================
+// Bot Setup
+//=========================================================
 
-// Bot questions and replies
+// Setup Restify Server
+var server = restify.createServer();
+server.listen(process.env.port || process.env.PORT || 3978, function () {
+   console.log('%s listening to %s', server.name, server.url);
+});
+
+// Create chat bot
+var connector = new builder.ChatConnector({
+    appId: process.env.MICROSOFT_APP_ID,
+    appPassword: process.env.MICROSOFT_APP_PASSWORD
+});
+
+var bot = new builder.UniversalBot(connector);
+server.post('/api/messages', connector.listen());
+
+// Serve a static web page
+server.get(/.*/, restify.serveStatic({
+	'directory': '.',
+	'default': 'index.html'
+}));
+
 var questions = ['What is force?', 'What is insulin?', 'What is the slope of a line?']
 var answers = ['Force is mass times acceleration. It is the strength of physical action.', 'Insulin is a hormone that is important to maintain glucose levels in blood.', 'It is the rate of change of a line.']
 var current_question = ""
@@ -21,7 +39,7 @@ var botReplies = [
     { field: 'IO', prompt: "Try thinking of your answer in another way." }
 ];
 
-// Variables need to build JSON for LCC
+
 var remoteSessionKey = "";
 var JSONObject = {};
 JSONObject.ttop = 50;
@@ -55,13 +73,11 @@ var r_new = "";
 var irr_old = "";
 var irr_new =  "";
 
-// Create bot
-var bot = new builder.BotConnectorBot(botConnectorOptions);
-
 //=========================================================
 // Bots Dialogs
 //=========================================================
-bot.add('/', [
+
+bot.dialog('/', [
     function (session) {
         session.send("Hello, I am EMT Bot!");
         session.beginDialog('/menu');
@@ -201,19 +217,3 @@ bot.dialog('/askQuestions', [
         }
     }
 ]);
-
-// Setup Restify Server
-var server = restify.createServer();
-
-// Handle Bot Framework messages
-server.post('/api/messages', bot.verifyBotFramework(), bot.listen());
-
-// Serve a static web page
-server.get(/.*/, restify.serveStatic({
-	'directory': '.',
-	'default': 'index.html'
-}));
-
-server.listen(process.env.port || 3978, function () {
-    console.log('%s listening to %s', server.name, server.url);
-});
