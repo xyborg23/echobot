@@ -164,6 +164,7 @@ bot.dialog('/askQuestions', [
                       console.dir(results);
                       console.log("CC ============= " + cc);
                       console.log("CT ============= " + ct);
+                      session.send("CT ============= " + ct);
                       console.log("RO ============= " + r_old);
                       console.log("RN ============= " + r_new);
                       console.log("IO ============= " + irr_old);
