@@ -164,7 +164,7 @@ bot.dialog('/askQuestions', [
                       console.dir(results);
                       console.log("CC ============= " + cc);
                       console.log("CT ============= " + ct);
-                      session.send("CT ============= " + ct);
+                      // session.send("CT ============= " + ct);
                       console.log("RO ============= " + r_old);
                       console.log("RN ============= " + r_new);
                       console.log("IO ============= " + irr_old);
@@ -173,6 +173,12 @@ bot.dialog('/askQuestions', [
                   console.log(str);
                   if(ct > 0.6) {
                       session.send("Great! You got it! Want to try some other subject?")
+                      var cc = "";
+                      var ct = 0;
+                      var r_old = "";
+                      var r_new = "";
+                      var irr_old = "";
+                      var irr_new =  "";
                       session.endDialogWithResult({ response: session.dialogData.answer });
                   }
                   else {
