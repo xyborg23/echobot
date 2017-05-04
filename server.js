@@ -73,6 +73,8 @@ var r_new = "";
 var irr_old = "";
 var irr_new =  "";
 
+var pathqa = 'books/books2';
+
 //=========================================================
 // Bots Dialogs
 //=========================================================
@@ -96,7 +98,7 @@ bot.dialog('/menu', [
             case 0:
             case 1:
             case 2:
-                ct = 0;
+                ct = "";
                 session.beginDialog('/askQuestions', results.response);
                 break;
             default:
@@ -112,6 +114,8 @@ bot.dialog('/menu', [
 
 bot.dialog('/askQuestions', [
     function (session, args) {
+        ct = "";
+        // HERE IS THE GOOGLE DATASTORE QUERY ======
         if(args.entity != null) {
             current_question = questions[args.index];
             answerKey = answers[args.index];
@@ -126,7 +130,10 @@ bot.dialog('/askQuestions', [
     function (session, results) {
         // Save users reply
         session.dialogData.answer = results.response;
-
+        if (session.dialogData.answer.indexOf('exit') >= 0 || session.dialogData.answer.indexOf('quit') >= 0) {
+            session.replaceDialog('/menu');
+            return;
+        }
         // Check for end of form
         if (ct < 0.6) {
             // session.send("You said " + session.dialogData.answer);
@@ -135,7 +142,9 @@ bot.dialog('/askQuestions', [
             JSONObject.target = encodeURI(answerKey);
             var jsonString = JSON.stringify(JSONObject);
             var pathpath = '/lcc?json=' + jsonString;
-
+            console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            console.log(jsonString);
+            console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             var options = {
               host: 'dsspp.skoonline.org',
               path: pathpath
@@ -173,12 +182,14 @@ bot.dialog('/askQuestions', [
                   console.log(str);
                   if(ct > 0.6) {
                       session.send("Great! You got it! Want to try some other subject?")
-                      var cc = "";
-                      var ct = 0;
-                      var r_old = "";
-                      var r_new = "";
-                      var irr_old = "";
-                      var irr_new =  "";
+                      // Resetting all the variables to not make the mistake
+                      cc = "";
+                      ct = "";
+                      r_old = "";
+                      r_new = "";
+                      irr_old = "";
+                      irr_new =  "";
+                      JSONObject.sessionKey = "";
                       session.endDialogWithResult({ response: session.dialogData.answer });
                   }
                   else {
@@ -198,7 +209,7 @@ bot.dialog('/askQuestions', [
                            session.send("You're on the right track. Be sure to answer both parts of the question.");
                       }
                       else {
-                           session.send("Perfect, please click on the next button to see what your doctor has to say about your glucose levels in the past few years.");
+                           session.send("Perfect");
                       }
                       session.replaceDialog('/askQuestions', session.dialogData);
                   }
@@ -209,13 +220,6 @@ bot.dialog('/askQuestions', [
             if(val != "") {
                 console.log("VAL IS:" + val);
             }
-            // console.log("CT===================================== " + ct);
-            // if(ct > 0.6) {
-            //     session.endDialogWithResult({ response: session.dialogData.answer });
-            // }
-            // // Next field
-            // // session.replaceDialog('/q1');
-            // session.replaceDialog('/askQuestions', session.dialogData);
         } else {
             // Return completed form
             console.log("CT: " + ct);
