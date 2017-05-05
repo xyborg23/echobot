@@ -116,6 +116,21 @@ bot.dialog('/askQuestions', [
     function (session, args) {
         ct = "";
         // HERE IS THE GOOGLE DATASTORE QUERY ======
+        // callback = function(response) {
+        //     var str = '';
+        //
+        //     // Another chunk of data has been received, so append it to 'str'
+        //     response.on('data', function(chunk) {
+        //         str += chunk;
+        //     });
+        //
+        //     // The whole response has been receieved, so now we can parse it
+        //     response.on('end', function () {
+        //         console.log("STR2 = " + str);
+        //     });
+        //
+        //     console.log("STR3 = " + str);
+        // }
         if(args.entity != null) {
             current_question = questions[args.index];
             answerKey = answers[args.index];
@@ -131,6 +146,14 @@ bot.dialog('/askQuestions', [
         // Save users reply
         session.dialogData.answer = results.response;
         if (session.dialogData.answer.indexOf('exit') >= 0 || session.dialogData.answer.indexOf('quit') >= 0) {
+            // Reset all the values if the user wants to quit
+            cc = "";
+            ct = "";
+            r_old = "";
+            r_new = "";
+            irr_old = "";
+            irr_new =  "";
+            JSONObject.sessionKey = "";
             session.replaceDialog('/menu');
             return;
         }
